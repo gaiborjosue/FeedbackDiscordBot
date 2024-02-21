@@ -22,6 +22,13 @@ client = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
     print(f'Logged in as {client.user}!')
     wizard_ascii_legendary_level_feedback_giver_9000 = """
+
+   ___             _ _                _      __    __ _                  _ 
+  / __\__  ___  __| | |__   __ _  ___| | __ / / /\ \ (_)______ _ _ __ __| |
+ / _\/ _ \/ _ \/ _` | '_ \ / _` |/ __| |/ / \ \/  \/ / |_  / _` | '__/ _` |
+/ / |  __/  __/ (_| | |_) | (_| | (__|   <   \  /\  /| |/ / (_| | | | (_| |
+\/   \___|\___|\__,_|_.__/ \__,_|\___|_|\_\   \/  \/ |_/___\__,_|_|  \__,_|
+                                                                           
                                       ....
                                 .'' .'''
 .                             .'   :
@@ -60,6 +67,7 @@ async def on_ready():
 
 @client.command()
 async def newfeedback(ctx, assignment_number: int, feedback_file: str):
+    server_name = ctx.guild.name
     allowed_channels = ['_staff']
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
@@ -67,11 +75,12 @@ async def newfeedback(ctx, assignment_number: int, feedback_file: str):
 
 
     # Update the JSON file with the new feedback URL
-    update_assignment_json(assignment_number, feedback_file)
+    update_assignment_json(server_name, assignment_number, feedback_file)
     await ctx.send(f"Assignment {assignment_number} feedback link updated.")
 
 @client.command()
-async def summary(ctx, assignment_number: int = None):
+async def summary(ctx, assignment_number: int = None, background_color: str = "black", bar_color: str = "#5192EA", label_color: str = "white"):
+    server_name = ctx.guild.name
     allowed_channels = ['_staff']
 
     if ctx.channel.name not in allowed_channels:
@@ -80,13 +89,13 @@ async def summary(ctx, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data)
+    assignment_number = assignment_number_not_provided(data, server_name)
 
     if assignment_number is None:
         await ctx.send("No feedback available yet.")
         return
 
-    feedback_file = data.get(str(assignment_number))
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
     if not feedback_file:
         await ctx.send("No feedback available yet.")
@@ -97,9 +106,9 @@ async def summary(ctx, assignment_number: int = None):
 
         if x and y:
             title = f"Assignment #{assignment_number}"
-            xlabel = "Grade"
+            xlabel = "Points"
             ylabel = "Number of Students"
-            graph = generateBarGraph(x, y, title, xlabel, ylabel)
+            graph = generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, label_color)
 
             await ctx.send(file=File(graph, filename="grade_distribution.png"))
         else:
@@ -111,6 +120,7 @@ async def summary(ctx, assignment_number: int = None):
 @client.command()
 async def feedbacklink(ctx, assignment_number: int = None):
     allowed_channels = ['_staff']
+    server_name = ctx.guild.name
 
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
@@ -118,13 +128,13 @@ async def feedbacklink(ctx, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data)
+    assignment_number = assignment_number_not_provided(data, server_name)
 
     if assignment_number is None:
         await ctx.send("No feedback available yet.")
         return
 
-    feedback_file = data.get(str(assignment_number))
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
     if not feedback_file:
         await ctx.send("No feedback available yet.")
@@ -135,6 +145,7 @@ async def feedbacklink(ctx, assignment_number: int = None):
 @client.command()
 async def feedbacklist(ctx):
     allowed_channels = ['_staff']
+    server_name = ctx.guild.name
 
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
@@ -143,7 +154,7 @@ async def feedbacklist(ctx):
     data = read_or_init_json()
 
     if data:
-        feedback_list = "\n".join([f"Assignment {k}: {v}" for k, v in data.items()])
+        feedback_list = "\n".join([f"Assignment {k}: {v}" for assignment_number, url in data[server_name].items()])
         await ctx.send(feedback_list)
     else:
         await ctx.send("No feedback available yet.")
@@ -151,12 +162,13 @@ async def feedbacklist(ctx):
 @client.command()
 async def deletefeedback(ctx, assignment_number: int):
     allowed_channels = ['_staff']
+    server_name = ctx.guild.name
 
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
         return
 
-    if delete_feedback(assignment_number):
+    if delete_feedback(assignment_number, server_name):
         await ctx.send(f"Assignment {assignment_number} feedback link deleted.")
     else:
         await ctx.send(f"Assignment {assignment_number} feedback link not found.")
@@ -181,24 +193,26 @@ async def helpstaff(ctx):
 
 ##### STUDENT INTERFACE #####
 
-# @commands.cooldown(rate=2, per=60, type=commands.BucketType.user)
+@commands.cooldown(rate=3, per=60, type=commands.BucketType.user)
 @client.command()
 async def feedback(ctx, assignment_number: int = None):
     allowed_channels = ['feedback', "_staff"]
+    server_name = ctx.guild.name
+
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
         return
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data)
+    assignment_number = assignment_number_not_provided(data, server_name)
 
     if assignment_number is None:
         await ctx.send("No feedback available yet.")
         return
 
 
-    feedback_file = data.get(str(assignment_number))
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
     if not feedback_file:
         await ctx.send("No feedback available yet.")
@@ -228,7 +242,7 @@ async def feedback(ctx, assignment_number: int = None):
         print(e)
         
 @client.command()
-async def help(ctx):
+async def helpstudent(ctx):
     allowed_channels = ['feedback', "_staff"]
 
     if ctx.channel.name not in allowed_channels:
@@ -237,7 +251,13 @@ async def help(ctx):
 
     embed = Embed(title="Student Commands", description="Here are the commands available for students:", color=0x00ff00)
     embed.add_field(name="!feedback *assignment_number*", value="Get the feedback for a specific assignment.", inline=False)
-    embed.add_field(name="!help", value="Show this help message.", inline=False)
+    embed.add_field(name="!helpstudent", value="Show this help message.", inline=False)
 
     await ctx.send(embed=embed)
-    
+
+
+##### Owner Red Button Shutdown ######
+@client.command()
+@commands.is_owner()
+async def shutdown(ctx):
+    exit()
