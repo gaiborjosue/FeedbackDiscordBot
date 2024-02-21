@@ -80,13 +80,11 @@ async def summary(ctx, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    if not assignment_number:
-        if data:
-            latest_assignment = max(data.keys(), key=int)
-            assignment_number = int(latest_assignment)
-        else:
-            await ctx.send("No feedback available yet.")
-            return
+    assignment_number = assignment_number_not_provided(data)
+
+    if assignment_number is None:
+        await ctx.send("No feedback available yet.")
+        return
 
     feedback_file = data.get(str(assignment_number))
 
@@ -118,7 +116,9 @@ async def feedbacklink(ctx, assignment_number: int = None):
         await ctx.send("This command can't be used in this channel.")
         return
 
-    assignment_number = assignment_number_not_provided()
+    data = read_or_init_json()
+
+    assignment_number = assignment_number_not_provided(data)
 
     if assignment_number is None:
         await ctx.send("No feedback available yet.")
@@ -189,8 +189,9 @@ async def feedback(ctx, assignment_number: int = None):
         await ctx.send("This command can't be used in this channel.")
         return
 
+    data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided()
+    assignment_number = assignment_number_not_provided(data)
 
     if assignment_number is None:
         await ctx.send("No feedback available yet.")

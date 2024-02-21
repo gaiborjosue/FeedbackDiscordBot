@@ -29,9 +29,7 @@ def delete_feedback(assignment_number):
         print(e)
         return False
 
-def assignment_number_not_provided():
-    data = read_or_init_json()
-
+def assignment_number_not_provided(data):
     if data:
         latest_assignment = max(data.keys(), key=int)
         return int(latest_assignment)
