@@ -174,6 +174,52 @@ async def deletefeedback(ctx, assignment_number: int):
         await ctx.send(f"Assignment {assignment_number} feedback link not found.")
 
 @client.command()
+async def studentfeedback(ctx, username: str, assignment_number: int = None):
+    allowed_channels = ['_staff']
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    data = read_or_init_json()
+
+    assignment_number = assignment_number_not_provided(data, server_name)
+
+    if assignment_number is None:
+        await ctx.send("No feedback available yet.")
+        return
+
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
+
+    if not feedback_file:
+        await ctx.send("No feedback available yet.")
+        return
+
+    try:
+        user_feedback = requestExcelFile(feedback_file, ctx, username)
+
+        if user_feedback.size > 0:
+            embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
+
+            if "cs617" in ctx.guild.name.lower():
+                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
+            elif "cs666" in ctx.guild.name.lower():
+                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
+            else:
+                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
+
+            embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
+
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("No feedback found for this user :(.")
+
+    except Exception as e:
+        await ctx.send("There was a problem retrieving the feedback.")
+        print(e)
+
+@client.command()
 async def helpstaff(ctx):
     allowed_channels = ['_staff']
 
@@ -183,10 +229,11 @@ async def helpstaff(ctx):
 
     embed = Embed(title="Staff Commands", description="Here are the commands available for staff:", color=0x00ff00)
     embed.add_field(name="!newfeedback *assignment_number* *feedback_file*", value="Update the feedback link for a specific assignment.", inline=False)
-    embed.add_field(name="!summary *assignment_number*", value="Generate a bar graph with the grading distribution for a specific assignment.", inline=False)
+    embed.add_field(name="!summary *assignment_number* *background_color* *bar_color* *label_color*", value="Generate a bar graph with the grading distribution for a specific assignment. Defaults to black background, blue bars and white labels/ticks.", inline=False)
     embed.add_field(name="!feedbacklink *assignment_number*", value="Get the feedback link for a specific assignment.", inline=False)
     embed.add_field(name="!feedbacklist", value="List all the feedback links available.", inline=False)
     embed.add_field(name="!deletefeedback *assignment_number*", value="Delete the feedback link for a specific assignment.", inline=False)
+    embed.add_field(name="!studentfeedback *student_discord_username* *assignment_number*", value="Get the feedback for a certain assignment for a specific user in the server.")
     embed.add_field(name="!helpstaff", value="Show this help message.", inline=False)
 
     await ctx.send(embed=embed)

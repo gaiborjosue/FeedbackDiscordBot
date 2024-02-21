@@ -12,16 +12,20 @@ def fetchExcelFile(feedback_file: str):
     except Exception as e:
         return e
 
-def requestExcelFile(feedback_file: str, ctx):
+def requestExcelFile(feedback_file: str, ctx, username: str = None):
     try:
         df = fetchExcelFile(feedback_file)
 
         df.columns = df.columns.str.lower()
 
-        user_feedback = df.loc[df['discord username'] == str(ctx.author).lower(), 'feedback'].values
+        # Determine the username to look for
+        lookup_username = username.lower() if username else str(ctx.author).lower()
+
+        user_feedback = df.loc[df['discord username'] == lookup_username, 'feedback'].values
         return user_feedback
     except Exception as e:
         return e
+        
 
 def getGraphData(feedback_file: str):
     try:
@@ -46,7 +50,7 @@ def getGraphData(feedback_file: str):
         else:
             print("Grade or Points column not found.")
             return [], []
-            
+
     except Exception as e:
         print(e)
         return [], []
