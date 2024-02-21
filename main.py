@@ -1,57 +1,82 @@
-import discord  # discord.py module
+from Utils.jsonManipulation import read_or_init_json, update_assignment_json
+from Utils.requestExcelFile import requestExcelFile
+
+import discord
 from discord.ext import commands
-
-client = commands.Bot(command_prefix='!')
-
-
-class FeedbackBot(discord.Client):
-    async def on_ready(self):
-        print('Logged on as {self.user}!')
-
-    async def on_message(self, message):  # When a message is sent
-        if (message.author.bot == False):  # If the message is not from a bot
-            await message.reply('Hello World!')
-            channel = message.channel.name
-            restricted_channels = ["staff"] # List of restricted channels
-            allowed_channels = ["feedback"] # List of allowed channels
-
-            prefix = "!"  # Replace with your prefix
-            # If the message starts with the prefix
-            if message.content.startswith(prefix):
-                if channel in restricted_channels: # If the message was sent in a restricted channel
-                    command = message.content[len(prefix):]  # Get the command
-                    # Check if the user is an admin
-                    isAdmin = [role.name ==
-                            "staff" for role in message.author.roles][0]
-                    # Check for commands
-                    if command == "newfeedback" and isAdmin:
-                        # Send a message
-                        await message.channel.send("New feedback has been created")
-
-                    if command == "help":
-                        await message.channel.send("```\n"
-                                                "Commands:\n"
-                                                "help - This is the help §erver stats\n"
-                                                "```")
-
-                    else:
-                        # If the command is not found
-                        await message.channel.send("This command doesn't exist")
-                else:
-                    await message.delete()
-                    await message.author.send(f"You can't use commands in #{channel}")
-                    # await message.channel.send("You can't use commands in this channel")\
-
-              elif channel in allowed_channels:
-                command = message.content[len(prefix):]
-
-                if command == "feedback":
-                    # looks into the json database and finds the assignment number, if no assignment feedback for that number,return a message.
-
-                
-                    
+from discord import Embed
 
 
-client = FeedbackBot()
-# Replace with your token
-client.run('5601e85812b6f8ab7639bd1fd3ecf748cdf8bb57d8856983ea3d86a68caaf4a7')
+
+# Define your intents
+intents = discord.Intents.default()
+intents.messages = True
+intents.members = True
+intents.message_content = True
+
+# Create a bot instance with a '!' prefix for commands
+client = commands.Bot(command_prefix='!', intents=intents)
+
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user}!')
+
+##### STAFF INTERFACE #####
+@client.command()
+async def newfeedback(ctx, assignment_number: int, feedback_file: str):
+    allowed_channels = ['staff']
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+
+    # Update the JSON file with the new feedback URL
+    update_assignment_json(assignment_number, feedback_file)
+    await ctx.send(f"Assignment {assignment_number} feedback link updated.")
+
+
+##### STUDENT INTERFACE #####
+
+# @commands.cooldown(rate=2, per=60, type=commands.BucketType.user)
+@client.command()
+async def feedback(ctx, assignment_number: int = None):
+    allowed_channels = ['feedback']
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+
+    data = read_or_init_json()
+
+    if not assignment_number:
+        if data:
+            latest_assignment = max(data.keys(), key=int)
+            assignment_number = int(latest_assignment)
+        else:
+            await ctx.send("No feedback available yet.")
+            return
+
+    feedback_file = data.get(str(assignment_number))
+
+    if not feedback_file:
+        await ctx.send("Feedback for this assignment is not available yet.")
+        return
+
+    try:
+        user_feedback = requestExcelFile(feedback_file, ctx)
+
+        if user_feedback.size > 0:
+            embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0x00ff00)  # You can change the title and color
+            embed.set_image(url="TESTING_URL")  # Replace TESTING_URL with your actual image URL
+            embed.add_field(name="Your Feedback", value=user_feedback[0], inline=False)
+
+            await ctx.author.send(embed=embed)
+        else:
+            await ctx.author.send("No feedback found for you.")
+
+    except Exception as e:
+        await ctx.send("There was a problem retrieving the feedback.")
+        print(e)
+
+
+# Run the bot with your token
+client.run('MTIwOTY1MzU3OTg3OTU1NTEyMg.G9qbLV.nJ4qXSVy8D6a16zjHsVuK3ihFDcFsXQ_sRn1Fw')
