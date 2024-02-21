@@ -169,15 +169,15 @@ async def helpstaff(ctx):
         await ctx.send("This command can't be used in this channel.")
         return
 
-    help_message = """
-    **!newfeedback** *assignment_number* *feedback_file*: Update the feedback link for a specific assignment.
-    **!summary** *assignment_number*: Generate a bar graph with the grading distribution for a specific assignment.
-    **!feedbacklink** *assignment_number*: Get the feedback link for a specific assignment.
-    **!feedbacklist**: List all the feedback links available.
-    **!deletefeedback** *assignment_number*: Delete the feedback link for a specific assignment.
-    **!helpstaff**: Show this help message.
-    """
-    await ctx.send(help_message)
+    embed = Embed(title="Staff Commands", description="Here are the commands available for staff:", color=0x00ff00)
+    embed.add_field(name="!newfeedback *assignment_number* *feedback_file*", value="Update the feedback link for a specific assignment.", inline=False)
+    embed.add_field(name="!summary *assignment_number*", value="Generate a bar graph with the grading distribution for a specific assignment.", inline=False)
+    embed.add_field(name="!feedbacklink *assignment_number*", value="Get the feedback link for a specific assignment.", inline=False)
+    embed.add_field(name="!feedbacklist", value="List all the feedback links available.", inline=False)
+    embed.add_field(name="!deletefeedback *assignment_number*", value="Delete the feedback link for a specific assignment.", inline=False)
+    embed.add_field(name="!helpstaff", value="Show this help message.", inline=False)
+
+    await ctx.send(embed=embed)
 
 ##### STUDENT INTERFACE #####
 

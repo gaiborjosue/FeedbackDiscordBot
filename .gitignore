@@ -3,3 +3,8 @@ __pycache__/
 
 # Ignore the virtual environment
 .env
+
+# Ignore vevn
+venv/
+
+get-pip.py
