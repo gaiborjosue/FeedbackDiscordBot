@@ -154,7 +154,7 @@ async def feedbacklist(ctx):
     data = read_or_init_json()
 
     if data:
-        feedback_list = "\n".join([f"Assignment {k}: {v}" for assignment_number, url in data[server_name].items()])
+        feedback_list = "\n".join([f"Assignment {assignment_number}: {url}" for assignment_number, url in data[server_name].items()])
         await ctx.send(feedback_list)
     else:
         await ctx.send("No feedback available yet.")
@@ -200,18 +200,30 @@ async def studentfeedback(ctx, username: str, assignment_number: int = None):
         user_feedback = requestExcelFile(feedback_file, ctx, username)
 
         if user_feedback.size > 0:
-            embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
+            feedback_text = user_feedback[0]
+            if len(feedback_text) <= 1024:
+                embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
 
-            if "cs617" in ctx.guild.name.lower():
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
-            elif "cs666" in ctx.guild.name.lower():
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
+                if "cs617" in ctx.guild.name.lower():
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
+                elif "cs666" in ctx.guild.name.lower():
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
+                else:
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
+
+                embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
+
+                await ctx.send(embed=embed)
             else:
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
-
-            embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
-
-            await ctx.send(embed=embed)
+                banner_url = ""
+                if "cs617" in ctx.guild.name.lower():
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png"
+                elif "cs666" in ctx.guild.name.lower():
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png"
+                else:
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png"
+                
+                await ctx.send(banner_url + "\n\n" + feedback_text)
         else:
             await ctx.send("No feedback found for this user :(.")
 
@@ -269,20 +281,32 @@ async def feedback(ctx, assignment_number: int = None):
         user_feedback = requestExcelFile(feedback_file, ctx)
 
         if user_feedback.size > 0:
-            embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
+            feedback_text = user_feedback[0]
+            if len(feedback_text) <= 1024:
+                embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
 
-            if "cs617" in ctx.guild.name.lower():
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
-            elif "cs666" in ctx.guild.name.lower():
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
+                if "cs617" in ctx.guild.name.lower():
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
+                elif "cs666" in ctx.guild.name.lower():
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
+                else:
+                    embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
+
+                embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
+
+                await ctx.send(embed=embed)
             else:
-                embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
-
-            embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
-
-            await ctx.author.send(embed=embed)
+                banner_url = ""
+                if "cs617" in ctx.guild.name.lower():
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png"
+                elif "cs666" in ctx.guild.name.lower():
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png"
+                else:
+                    banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png"
+                
+                await ctx.send(banner_url + "\n\n" + feedback_text)
         else:
-            await ctx.author.send("No feedback found for you :(.")
+            await ctx.send("No feedback found for this user :(.")
 
     except Exception as e:
         await ctx.send("There was a problem retrieving the feedback.")
