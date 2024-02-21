@@ -15,7 +15,7 @@ intents.messages = True
 intents.members = True
 intents.message_content = True
 
-# Create a bot instance with a '!' prefix for commands
+
 client = commands.Bot(command_prefix='!', intents=intents)
 
 @client.event
