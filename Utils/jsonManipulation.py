@@ -14,7 +14,7 @@ def update_assignment_json(assignment_number, feedback_file, filepath='feedback.
     with open(filepath, 'w') as file:
         json.dump(data, file, indent=4)
 
-def delete_Feedback(assignment_number):
+def delete_feedback(assignment_number):
     try:
         data = read_or_init_json()
 
