@@ -18,6 +18,9 @@ def requestExcelFile(feedback_file: str, ctx, username: str = None):
 
         df.columns = df.columns.str.lower()
 
+        if 'discord username' in df.columns:
+            df['discord username'] = df['discord username'].str.lower()
+
         # Determine the username to look for
         lookup_username = username.lower() if username else str(ctx.author).lower()
 
