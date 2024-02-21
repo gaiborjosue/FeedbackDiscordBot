@@ -79,4 +79,4 @@ async def feedback(ctx, assignment_number: int = None):
 
 
 # Run the bot with your token
-client.run('MTIwOTY1MzU3OTg3OTU1NTEyMg.G9qbLV.nJ4qXSVy8D6a16zjHsVuK3ihFDcFsXQ_sRn1Fw')
+client.run('TOKEN_GOES_HERE')
