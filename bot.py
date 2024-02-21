@@ -226,3 +226,18 @@ async def feedback(ctx, assignment_number: int = None):
     except Exception as e:
         await ctx.send("There was a problem retrieving the feedback.")
         print(e)
+        
+@client.command()
+async def help(ctx):
+    allowed_channels = ['feedback', "_staff"]
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    embed = Embed(title="Student Commands", description="Here are the commands available for students:", color=0x00ff00)
+    embed.add_field(name="!feedback *assignment_number*", value="Get the feedback for a specific assignment.", inline=False)
+    embed.add_field(name="!help", value="Show this help message.", inline=False)
+
+    await ctx.send(embed=embed)
+    
