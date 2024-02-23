@@ -10,3 +10,5 @@ venv/
 get-pip.py
 
 nohup.out
+
+feedback.json

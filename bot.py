@@ -66,20 +66,22 @@ async def on_ready():
 ##### STAFF INTERFACE #####
 
 @client.command()
-async def newfeedback(ctx, assignment_number: int, feedback_file: str):
+async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = None):
     server_name = ctx.guild.name
     allowed_channels = ['_staff']
     if ctx.channel.name not in allowed_channels:
         await ctx.send("This command can't be used in this channel.")
         return
 
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
 
     # Update the JSON file with the new feedback URL
     update_assignment_json(server_name, assignment_number, feedback_file)
     await ctx.send(f"Assignment {assignment_number} feedback link updated.")
 
 @client.command()
-async def summary(ctx, assignment_number: int = None, background_color: str = "black", bar_color: str = "#5192EA", label_color: str = "white"):
+async def summary(ctx, assignment_number: str = None, background_color: str = "black", bar_color: str = "#5192EA", label_color: str = "white"):
     server_name = ctx.guild.name
     allowed_channels = ['_staff']
 
@@ -89,11 +91,14 @@ async def summary(ctx, assignment_number: int = None, background_color: str = "b
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data, server_name)
-
-    if assignment_number is None:
-        await ctx.send("No feedback available yet.")
-        return
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
 
     feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
@@ -118,7 +123,7 @@ async def summary(ctx, assignment_number: int = None, background_color: str = "b
         print(e)
 
 @client.command()
-async def feedbacklink(ctx, assignment_number: int = None):
+async def feedbacklink(ctx, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
 
@@ -128,11 +133,14 @@ async def feedbacklink(ctx, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data, server_name)
-
-    if assignment_number is None:
-        await ctx.send("No feedback available yet.")
-        return
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
 
     feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
@@ -160,7 +168,7 @@ async def feedbacklist(ctx):
         await ctx.send("No feedback available yet.")
 
 @client.command()
-async def deletefeedback(ctx, assignment_number: int):
+async def deletefeedback(ctx, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
 
@@ -168,13 +176,16 @@ async def deletefeedback(ctx, assignment_number: int):
         await ctx.send("This command can't be used in this channel.")
         return
 
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+
     if delete_feedback(assignment_number, server_name):
         await ctx.send(f"Assignment {assignment_number} feedback link deleted.")
     else:
         await ctx.send(f"Assignment {assignment_number} feedback link not found.")
 
 @client.command()
-async def studentfeedback(ctx, username: str, assignment_number: int = None):
+async def studentfeedback(ctx, username: str, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
 
@@ -184,11 +195,14 @@ async def studentfeedback(ctx, username: str, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data, server_name)
-
-    if assignment_number is None:
-        await ctx.send("No feedback available yet.")
-        return
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
 
     feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
@@ -254,7 +268,7 @@ async def helpstaff(ctx):
 
 @commands.cooldown(rate=3, per=60, type=commands.BucketType.user)
 @client.command()
-async def feedback(ctx, assignment_number: int = None):
+async def feedback(ctx, assignment_number: str = None):
     allowed_channels = ['feedback', "_staff"]
     server_name = ctx.guild.name
 
@@ -264,12 +278,14 @@ async def feedback(ctx, assignment_number: int = None):
 
     data = read_or_init_json()
 
-    assignment_number = assignment_number_not_provided(data, server_name)
-
-    if assignment_number is None:
-        await ctx.send("No feedback available yet.")
-        return
-
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
 
     feedback_file = data.get(server_name, {}).get(str(assignment_number))
 
@@ -294,7 +310,7 @@ async def feedback(ctx, assignment_number: int = None):
 
                 embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=user_feedback[0], inline=False)
 
-                await ctx.send(embed=embed)
+                await ctx.author.send(embed=embed)
             else:
                 banner_url = ""
                 if "cs617" in ctx.guild.name.lower():
@@ -304,7 +320,7 @@ async def feedback(ctx, assignment_number: int = None):
                 else:
                     banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png"
                 
-                await ctx.send(banner_url + "\n\n" + feedback_text)
+                await ctx.author.send(banner_url + "\n\n" + feedback_text)
         else:
             await ctx.send("No feedback found for this user :(.")
 
