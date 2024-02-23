@@ -15,8 +15,9 @@ intents.messages = True
 intents.members = True
 intents.message_content = True
 
+activity = discord.Game(name="!helpstudent")
 
-client = commands.Bot(command_prefix='!', intents=intents)
+client = commands.Bot(command_prefix='!', activity=activity, intents=intents)
 
 @client.event
 async def on_ready():
@@ -65,7 +66,7 @@ async def on_ready():
 
 ##### STAFF INTERFACE #####
 
-@client.command()
+@client.command(aliases=["new_feedback"])
 async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = None):
     server_name = ctx.guild.name
     allowed_channels = ['_staff']
@@ -80,7 +81,7 @@ async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = N
     update_assignment_json(server_name, assignment_number, feedback_file)
     await ctx.send(f"Assignment {assignment_number} feedback link updated.")
 
-@client.command()
+@client.command(aliases=["summarygraph", "graphsummary", "graph_summary", "summary_graph"])
 async def summary(ctx, assignment_number: str = None, background_color: str = "black", bar_color: str = "#5192EA", label_color: str = "white"):
     server_name = ctx.guild.name
     allowed_channels = ['_staff']
@@ -122,7 +123,7 @@ async def summary(ctx, assignment_number: str = None, background_color: str = "b
         await ctx.send("There was a problem retrieving the grading distribution graph.")
         print(e)
 
-@client.command()
+@client.command(aliases=["linkfeedback", "link_feedback", "feedback_link"])
 async def feedbacklink(ctx, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
@@ -150,7 +151,7 @@ async def feedbacklink(ctx, assignment_number: str = None):
 
     await ctx.send(f"Feedback for assignment {assignment_number}: {feedback_file}")
 
-@client.command()
+@client.command(aliases=["listfeedback", "list_feedback"])
 async def feedbacklist(ctx):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
@@ -167,7 +168,7 @@ async def feedbacklist(ctx):
     else:
         await ctx.send("No feedback available yet.")
 
-@client.command()
+@client.command(aliases=["delete_feedback"])
 async def deletefeedback(ctx, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
@@ -184,7 +185,7 @@ async def deletefeedback(ctx, assignment_number: str = None):
     else:
         await ctx.send(f"Assignment {assignment_number} feedback link not found.")
 
-@client.command()
+@client.command(aliases=["feedbackstudent", "student_feedback", "feedback_student"])
 async def studentfeedback(ctx, username: str, assignment_number: str = None):
     allowed_channels = ['_staff']
     server_name = ctx.guild.name
@@ -245,7 +246,7 @@ async def studentfeedback(ctx, username: str, assignment_number: str = None):
         await ctx.send("There was a problem retrieving the feedback.")
         print(e)
 
-@client.command()
+@client.command(aliases=["staffhelp"])
 async def helpstaff(ctx):
     allowed_channels = ['_staff']
 
@@ -328,7 +329,32 @@ async def feedback(ctx, assignment_number: str = None):
         await ctx.send("There was a problem retrieving the feedback.")
         print(e)
         
-@client.command()
+@client.command(aliases=["assignments", "feedbackassignments"])
+async def checkassignments(ctx):
+    allowed_channels = ['feedback', "_staff"]
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    data = read_or_init_json()
+
+    assignments = data.get(server_name, {})
+
+    embed = discord.Embed(title="Assignments Ready for Feedback", color=0x00ff00)
+    embed.add_field(name="Info", value="These are the assignments already posted and ready with your feedback.", inline=False)
+
+    if assignments:
+        for num in assignments.keys():
+            embed.add_field(name=f"Assignment {num}", value=":white_check_mark:", inline=False)
+        embed.set_footer(text="Use `!feedback <assignment_number>` to get the feedback!")
+    else:
+        embed.description = "No assignments with feedback available yet."
+
+    await ctx.send(embed=embed)
+
+@client.command(aliases=["studenthelp"])
 async def helpstudent(ctx):
     allowed_channels = ['feedback', "_staff"]
 
@@ -338,13 +364,14 @@ async def helpstudent(ctx):
 
     embed = Embed(title="Student Commands", description="Here are the commands available for students:", color=0x00ff00)
     embed.add_field(name="!feedback *assignment_number*", value="Get the feedback for a specific assignment.", inline=False)
+    embed.add_field(name="!checkassignments", value="List all the assignments that have feedback available.", inline=False)
     embed.add_field(name="!helpstudent", value="Show this help message.", inline=False)
 
     await ctx.send(embed=embed)
 
-
 ##### Owner Red Button Shutdown ######
-@client.command()
+@client.command(aliases=["DO_NOT_PRESS", "kill", "fireball"])
 @commands.is_owner()
 async def shutdown(ctx):
+    await ctx.send("I have been attacked! I'm going down! *screams*, *explosion*, *silence*, *crickets*, *tumbleweed*, *more silence*, *even more silence*, *the end*, *credits*, *post-credits scene*")
     exit()
