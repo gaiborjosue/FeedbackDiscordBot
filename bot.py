@@ -1,5 +1,5 @@
 from Utils.jsonManipulation import read_or_init_json, update_assignment_json, delete_feedback, assignment_number_not_provided
-from Utils.requestExcelFile import requestExcelFile, getGraphData
+from Utils.requestExcelFile import requestExcelFile, getGraphData, buildRubric
 from Utils.generateBarGraph import generateBarGraph
 
 import discord
@@ -328,7 +328,8 @@ async def feedback(ctx, assignment_number: str = None):
     except Exception as e:
         await ctx.send("There was a problem retrieving the feedback.")
         print(e)
-        
+
+@commands.cooldown(rate=3, per=60, type=commands.BucketType.user)        
 @client.command(aliases=["assignments", "feedbackassignments"])
 async def checkassignments(ctx):
     allowed_channels = ['feedback', "_staff"]
@@ -354,6 +355,48 @@ async def checkassignments(ctx):
 
     await ctx.send(embed=embed)
 
+@commands.cooldown(rate=3, per=60, type=commands.BucketType.user)
+@client.command()
+async def rubric(ctx, assignment_number: str = None):
+    allowed_channels = ['feedback', "_staff"]
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    elif "cs617" not in server_name.lower():
+        await ctx.send("Rubric functionality is only available for CS617.")
+        return
+
+    data = read_or_init_json()
+
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
+
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
+
+    if not feedback_file:
+        await ctx.send("No feedback available yet.")
+        return
+
+    try:
+    
+        table = buildRubric(feedback_file)
+
+        await ctx.send(f"## Rubric for assignment {assignment_number}", file=File(table, filename="rubric.png"))
+
+    except Exception as e:
+        await ctx.send("There was a problem retrieving the rubric.")
+        print(e)
+
+
 @client.command(aliases=["studenthelp"])
 async def helpstudent(ctx):
     allowed_channels = ['feedback', "_staff"]
@@ -365,6 +408,7 @@ async def helpstudent(ctx):
     embed = Embed(title="Student Commands", description="Here are the commands available for students:", color=0x00ff00)
     embed.add_field(name="!feedback *assignment_number*", value="Get the feedback for a specific assignment.", inline=False)
     embed.add_field(name="!checkassignments", value="List all the assignments that have feedback available.", inline=False)
+    embed.add_field(name="!rubric *assignment_number*", value="Get the rubric for a specific assignment.", inline=False)
     embed.add_field(name="!helpstudent", value="Show this help message.", inline=False)
 
     await ctx.send(embed=embed)
