@@ -385,7 +385,7 @@ async def rubric(ctx, assignment_number: str = None):
     if not feedback_file:
         with open("Images/goblin.png", "rb") as f:
             picture = discord.File(f)
-            await ctx.send("No rubcric available yet.", file=picture)
+            await ctx.send("No rubric available yet.", file=picture)
         return
 
     try:
