@@ -1,5 +1,5 @@
 from Utils.jsonManipulation import read_or_init_json, update_assignment_json, delete_feedback, assignment_number_not_provided
-from Utils.requestExcelFile import requestExcelFile, getGraphData, buildRubric
+from Utils.requestExcelFile import fetchExcelFile, requestExcelFile, getGraphData, buildRubric
 from Utils.generateBarGraph import generateBarGraph
 
 import discord
@@ -77,9 +77,26 @@ async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = N
     if assignment_number is not None:
         assignment_number = int(assignment_number)
 
-    # Update the JSON file with the new feedback URL
-    update_assignment_json(server_name, assignment_number, feedback_file)
-    await ctx.send(f"Assignment {assignment_number} feedback link updated.")
+        # Check if the feedback is accessible with fetchExcelFile
+        try:
+            x, y = getGraphData(feedback_file)
+
+            if x and y:
+                # If the feedback is accessible then update the JSON file and announce the feedback
+                update_assignment_json(server_name, assignment_number, feedback_file)
+                await ctx.send(f"Assignment {assignment_number} feedback link updated.")
+
+                channel = discord.utils.get(ctx.guild.channels, name="feedback")
+
+                await channel.send(f"Hello @everyone feedback for assignment {assignment_number} is ready :tada:! Use `!feedback {assignment_number}` to get it.", file=File("Images/spongebob.gif"))
+            else:
+                await ctx.send(f"Assignment {assignment_number} feedback link not valid.")
+            
+        except Exception as e:
+            await ctx.send(f"Assignment {assignment_number} feedback link not valid.")
+
+    else:
+        await ctx.send("Please provide an assignment number.")
 
 @client.command(aliases=["summarygraph", "graphsummary", "graph_summary", "summary_graph"])
 async def summary(ctx, assignment_number: str = None, background_color: str = "black", bar_color: str = "#5192EA", label_color: str = "white"):
@@ -119,6 +136,7 @@ async def summary(ctx, assignment_number: str = None, background_color: str = "b
             await ctx.send(file=File(graph, filename="grade_distribution.png"))
         else:
             await ctx.send("No feedback available yet.")
+            
     except Exception as e:
         await ctx.send("There was a problem retrieving the grading distribution graph.")
         print(e)
@@ -260,10 +278,46 @@ async def helpstaff(ctx):
     embed.add_field(name="!feedbacklink *assignment_number*", value="Get the feedback link for a specific assignment.", inline=False)
     embed.add_field(name="!feedbacklist", value="List all the feedback links available.", inline=False)
     embed.add_field(name="!deletefeedback *assignment_number*", value="Delete the feedback link for a specific assignment.", inline=False)
+    embed.add_field(name="!announcefeedback Optional:*assignment_number*", value="Announce that the feedback is ready on channel 'feedback'.", inline=False)
     embed.add_field(name="!studentfeedback *student_discord_username* *assignment_number*", value="Get the feedback for a certain assignment for a specific user in the server.")
     embed.add_field(name="!helpstaff", value="Show this help message.", inline=False)
 
     await ctx.send(embed=embed)
+
+# Command to announce that the feedback is ready on channel "feedback"
+@client.command(aliases=["announce"])
+async def announcefeedback(ctx, assignment_number: str = None):
+    allowed_channels = ['_staff']
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    data = read_or_init_json()
+
+    if assignment_number is not None:
+        assignment_number = int(assignment_number)
+        
+    else:
+        assignment_number = assignment_number_not_provided(data, server_name)
+        if assignment_number is None:
+            await ctx.send("No feedback available yet.")
+            return
+
+    feedback_file = data.get(server_name, {}).get(str(assignment_number))
+
+    if not feedback_file:
+        await ctx.send("No feedback available yet.")
+        return
+
+    try:
+        channel = discord.utils.get(ctx.guild.channels, name="feedback")
+        await channel.send(f"Hello @everyone feedback for assignment {assignment_number} is ready :tada:! Use `!feedback {assignment_number}` to get it.", file=File("Images/spongebob.gif"))
+
+    except Exception as e:
+        await ctx.send("There was a problem announcing the feedback.")
+        print(e)
 
 ##### STUDENT INTERFACE #####
 
