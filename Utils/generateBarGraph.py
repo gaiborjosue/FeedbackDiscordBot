@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import io
+import math
 
 def generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, label_color):
     fig, ax = plt.subplots()
@@ -32,7 +33,10 @@ def generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, l
     return buf
 
 
-def generatePointGraph(x, y, title, xlabel, ylabel, background_color, point_color, label_color):
+def generatePointGraph(x, y, title, xlabel, ylabel, background_color, point_color, label_color):    
+    int_y = range(math.floor(min(y)), math.ceil(max(y))+1)
+    int_x = range(math.floor(min(x)), math.ceil(max(x))+1)
+    
     fig, ax = plt.subplots()
 
     fig.patch.set_facecolor(background_color)
@@ -43,6 +47,9 @@ def generatePointGraph(x, y, title, xlabel, ylabel, background_color, point_colo
             , markersize=5
             , linestyle='solid'
             , linewidth=1)
+
+    plt.yticks(int_y, color=f'{label_color}')
+    plt.xticks(int_x, color=f'{label_color}')
 
     plt.xlabel(xlabel, color=f'{label_color}')
 
