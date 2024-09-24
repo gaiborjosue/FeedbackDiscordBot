@@ -3,6 +3,8 @@ import io
 import math
 
 def generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, label_color):
+    int_y = range(math.floor(min(y)), math.ceil(max(y))+1)
+
     fig, ax = plt.subplots()
 
     fig.patch.set_facecolor(background_color)
@@ -14,6 +16,7 @@ def generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, l
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x, color=f'{label_color}')  # Set the filtered grades as x-axis labels
 
+    plt.yticks(int_y, color=f'{label_color}')
     plt.xlabel(xlabel, color=f'{label_color}')
     plt.ylabel(ylabel, color=f'{label_color}')
     plt.title(title, color=f'{label_color}')
