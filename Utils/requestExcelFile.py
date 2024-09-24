@@ -15,7 +15,7 @@ def fetchExcelFile(feedback_file: str):
     except Exception as e:
         return e
 
-def requestExcelFile(feedback_file: str, ctx, username: str = None):
+def requestExcelFile(feedback_file: str, ctx, username: str = None, grade: bool = False):
     try:
         df = fetchExcelFile(feedback_file)
 
@@ -27,10 +27,15 @@ def requestExcelFile(feedback_file: str, ctx, username: str = None):
         lookup_username = username.lower() if username else str(ctx.author).lower()
 
         user_feedback = df.loc[df['discord username'] == lookup_username, 'feedback'].values
+
+        if grade:
+            user_grade = df.loc[df['discord username'] == lookup_username, 'grade'].values
+            return user_feedback, user_grade
+
         return user_feedback
+
     except Exception as e:
         return e
-        
 
 def getGraphData(feedback_file: str):
     try:

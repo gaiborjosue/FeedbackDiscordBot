@@ -1,6 +1,6 @@
 from Utils.jsonManipulation import read_or_init_json, update_assignment_json, delete_feedback, assignment_number_not_provided
 from Utils.requestExcelFile import fetchExcelFile, requestExcelFile, getGraphData, buildRubric
-from Utils.generateBarGraph import generateBarGraph
+from Utils.generateBarGraph import generateBarGraph, generatePointGraph
 
 import discord
 from discord.ext import commands
@@ -10,10 +10,7 @@ import json
 
 
 # Define the intents
-intents = discord.Intents.default()
-intents.messages = True
-intents.members = True
-intents.message_content = True
+intents = discord.Intents.all()
 
 activity = discord.Game(name="!helpstudent")
 
@@ -67,7 +64,7 @@ async def on_ready():
 ##### STAFF INTERFACE #####
 
 @client.command(aliases=["new_feedback"])
-async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = None):
+async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = None, announce: bool = True):
     server_name = ctx.guild.name
     allowed_channels = ['_staff']
     if ctx.channel.name not in allowed_channels:
@@ -86,9 +83,10 @@ async def newfeedback(ctx, assignment_number: str = None, feedback_file: str = N
                 update_assignment_json(server_name, assignment_number, feedback_file)
                 await ctx.send(f"Assignment {assignment_number} feedback link updated.")
 
-                channel = discord.utils.get(ctx.guild.channels, name="feedback")
+                if announce:
+                    channel = discord.utils.get(ctx.guild.channels, name="feedback")
 
-                await channel.send(f"Hello @everyone feedback for assignment {assignment_number} is ready :tada:! Use `!feedback {assignment_number}` to get it.", file=File("Images/spongebob.gif"))
+                    await channel.send(f"Hello @everyone feedback for assignment {assignment_number} is ready :tada:! Use `!feedback {assignment_number}` to get it.", file=File("Images/spongebob.gif"))
             else:
                 await ctx.send(f"Assignment {assignment_number} feedback link not valid.")
             
@@ -230,12 +228,12 @@ async def studentfeedback(ctx, username: str, assignment_number: str = None):
         return
 
     try:
-        user_feedback = requestExcelFile(feedback_file, ctx, username)
+        user_feedback, user_grade = requestExcelFile(feedback_file, ctx, username, grade=True)
 
         if user_feedback.size > 0:
             feedback_text = user_feedback[0]
             if len(feedback_text) <= 1024:
-                embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
+                embed = Embed(title=f"Feedback for Assignment {assignment_number} - Score={user_grade}", color=0xFF914D)
 
                 if "cs617" in ctx.guild.name.lower():
                     embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
@@ -256,12 +254,46 @@ async def studentfeedback(ctx, username: str, assignment_number: str = None):
                 else:
                     banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png"
                 
-                await ctx.send(banner_url + "\n\n" + feedback_text)
+                await ctx.send(banner_url + "\n\n" + f"Score={user_grade}" + "\n\n" + feedback_text)
         else:
             await ctx.send("No feedback found for this user :(.")
 
     except Exception as e:
         await ctx.send("There was a problem retrieving the feedback.")
+        print(e)
+
+@client.command(aliases=["studenttrack"])
+async def trackstudent(ctx, username: str):
+    allowed_channels = ['_staff']
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    data = read_or_init_json()
+
+    assignments = data.get(server_name, {})
+
+    # Get grades for the student for all assignments, save each grade on a list and then generate a graph
+    try:
+        grades = []
+        for assignment_number, feedback_file in assignments.items():
+            user_feedback, user_grade = requestExcelFile(feedback_file, ctx, username, grade=True)
+            grades.append(user_grade[0])
+
+        if grades:
+            title = "Grades Summary"
+            xlabel = "Assignments"
+            ylabel = "Grades"
+            graph = generatePointGraph(list(range(1, len(grades)+1)), grades, title, xlabel, ylabel, "black", "#5192EA", "white")
+
+            await ctx.send(file=File(graph, filename="grades_summary.png"))
+        else:
+            await ctx.send("No grades available yet.")
+
+    except Exception as e:
+        await ctx.send("There was a problem retrieving the grades.")
         print(e)
 
 @client.command(aliases=["staffhelp"])
@@ -349,12 +381,15 @@ async def feedback(ctx, assignment_number: str = None):
         return
 
     try:
-        user_feedback = requestExcelFile(feedback_file, ctx)
+        user_feedback, user_grade = requestExcelFile(feedback_file, ctx, grade=True)
+        
+        print(user_feedback, user_grade)
 
         if user_feedback.size > 0:
             feedback_text = user_feedback[0]
+
             if len(feedback_text) <= 1024:
-                embed = Embed(title=f"Feedback for Assignment {assignment_number}", color=0xFF914D)
+                embed = Embed(title=f"Feedback for Assignment {assignment_number}- Score={user_grade}", color=0xFF914D)
 
                 if "cs617" in ctx.guild.name.lower():
                     embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
@@ -375,12 +410,47 @@ async def feedback(ctx, assignment_number: str = None):
                 else:
                     banner_url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png"
                 
-                await ctx.author.send(banner_url + "\n\n" + feedback_text)
+                await ctx.author.send(banner_url + "\n\n" + f"Score={user_grade}" + "\n\n" + feedback_text)
         else:
             await ctx.send("No feedback found for this user :(.")
 
     except Exception as e:
+        print(e)
         await ctx.send("There was a problem retrieving the feedback.")
+
+@commands.cooldown(rate=3, per=60, type=commands.BucketType.user)
+@client.command()
+async def track(ctx):
+    allowed_channels = ['feedback', "_staff", "general"]
+    server_name = ctx.guild.name
+
+    if ctx.channel.name not in allowed_channels:
+        await ctx.send("This command can't be used in this channel.")
+        return
+
+    data = read_or_init_json()
+
+    assignments = data.get(server_name, {})
+
+    # Get grades for the student for all assignments, save each grade on a list and then generate a graph
+    try:
+        grades = []
+        for assignment_number, feedback_file in assignments.items():
+            user_feedback, user_grade = requestExcelFile(feedback_file, ctx, grade=True)
+            grades.append(user_grade[0])
+
+        if grades:
+            title = "Grades Summary"
+            xlabel = "Assignments"
+            ylabel = "Grades"
+            graph = generatePointGraph(list(range(1, len(grades)+1)), grades, title, xlabel, ylabel, "black", "#5192EA", "white")
+
+            await ctx.send(file=File(graph, filename="grades_summary.png"))
+        else:
+            await ctx.send("No grades available yet.")
+
+    except Exception as e:
+        await ctx.send("There was a problem retrieving the grades.")
         print(e)
 
 @commands.cooldown(rate=3, per=60, type=commands.BucketType.user)        

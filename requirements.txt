@@ -4,3 +4,4 @@ pandas
 matplotlib
 requests
 openpyxl
+dataframe_image
