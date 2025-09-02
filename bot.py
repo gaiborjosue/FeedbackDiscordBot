@@ -79,54 +79,8 @@ async def on_ready():
     try:
         synced = await tree.sync()
         print(f"Synced {len(synced)} slash commands")
-        
-        # Set up command permissions for staff commands
-        await setup_staff_permissions()
     except Exception as e:
         print(f"Failed to sync slash commands: {e}")
-
-async def setup_staff_permissions():
-    """Set up permissions for staff-only commands"""
-    try:
-        # Get all guilds the bot is in
-        for guild in client.guilds:
-            # Get the staff role
-            staff_role = discord.utils.get(guild.roles, name='staff')
-            if not staff_role:
-                print(f"No 'staff' role found in {guild.name}")
-                continue
-            
-            # Staff command names
-            staff_commands = [
-                'newfeedback', 'summary', 'feedbacklink', 'feedbacklist',
-                'deletefeedback', 'announcefeedback', 'studentfeedback',
-                'trackstudent', 'helpstaff'
-            ]
-            
-            # Set permissions for each staff command
-            for command_name in staff_commands:
-                try:
-                    command = tree.get_command(command_name)
-                    if command:
-                        # Allow only staff role to use the command
-                        permissions = app_commands.AppCommandPermissions(
-                            id=staff_role.id,
-                            type=app_commands.AppCommandPermissionType.role,
-                            permission=True
-                        )
-                        
-                        # Set the permission
-                        await tree.set_commands_permissions(
-                            guild=guild,
-                            commands=[command],
-                            permissions=[permissions]
-                        )
-                        print(f"Set permissions for {command_name} in {guild.name}")
-                except Exception as e:
-                    print(f"Failed to set permissions for {command_name}: {e}")
-                    
-    except Exception as e:
-        print(f"Failed to setup staff permissions: {e}")
     
     wizard_ascii_legendary_level_feedback_giver_9000 = """
 
@@ -902,12 +856,6 @@ async def slash_helpstudent(interaction: discord.Interaction):
 
 ##### STAFF SLASH COMMANDS #####
 
-# Create a staff command group
-staff_group = app_commands.Group(name="staff", description="Staff-only commands")
-
-# Add the group to the tree
-tree.add_command(staff_group)
-
 def has_staff_role(interaction: discord.Interaction) -> bool:
     """Check if user has staff role"""
     staff_role = discord.utils.get(interaction.guild.roles, name='staff')
@@ -915,7 +863,7 @@ def has_staff_role(interaction: discord.Interaction) -> bool:
         return False
     return staff_role in interaction.user.roles
 
-@staff_group.command(name="newfeedback", description="Add new assignment feedback")
+@tree.command(name="newfeedback", description="Add new assignment feedback (Staff only)")
 @app_commands.describe(
     assignment_number="The assignment number",
     feedback_file="URL to the Excel file with feedback",
