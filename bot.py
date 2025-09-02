@@ -943,7 +943,7 @@ async def slash_summary(interaction: discord.Interaction, assignment_number: int
             ylabel = "Number of Students"
             graph = generateBarGraph(x, y, title, xlabel, ylabel, background_color, bar_color, label_color)
 
-            await interaction.response.send_message(file=File(graph, filename="grade_distribution.png"), ephemeral=True)
+            await interaction.response.send_message(file=File(graph, filename="grade_distribution.png"))
         else:
             await interaction.response.send_message("❌ No feedback available yet.", ephemeral=True)
             
