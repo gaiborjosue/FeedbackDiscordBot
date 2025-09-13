@@ -29,7 +29,7 @@ def requestExcelFile(feedback_file: str, ctx, username: str = None, grade: bool 
         print(f"[EXCEL] Starting requestExcelFile with feedback_file: {feedback_file}")
         print(f"[EXCEL] Username parameter: {username}")
         print(f"[EXCEL] Grade parameter: {grade}")
-        print(f"[EXCEL] Context author: {ctx.author if hasattr(ctx, 'author') else 'No author attribute'}")
+        print(f"[EXCEL] Context user: {ctx.user if hasattr(ctx, 'user') else ctx.author if hasattr(ctx, 'author') else 'No user/author attribute'}")
         
         df = fetchExcelFile(feedback_file)
         print(f"[EXCEL] fetchExcelFile returned: {type(df)}")
@@ -50,7 +50,7 @@ def requestExcelFile(feedback_file: str, ctx, username: str = None, grade: bool 
         else:
             print(f"[EXCEL] WARNING: 'discord username' column not found!")
 
-        lookup_username = username.lower() if username else str(ctx.author).lower()
+        lookup_username = username.lower() if username else str(ctx.user if hasattr(ctx, 'user') else ctx.author).lower()
         print(f"[EXCEL] Looking for username: '{lookup_username}'")
         
         # Show available usernames for debugging
