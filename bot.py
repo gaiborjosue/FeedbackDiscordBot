@@ -51,51 +51,12 @@ client = commands.Bot(command_prefix='!', activity=activity, intents=intents)
 # Use the existing command tree
 tree = client.tree
 
-# Interactive Button View for Feedback
-class FeedbackView(discord.ui.View):
-    def __init__(self, assignment_number, feedback_file, server_name):
-        super().__init__(timeout=300)  # 5 minute timeout
-        self.assignment_number = assignment_number
-        self.feedback_file = feedback_file
-        self.server_name = server_name
+# Define the intents
+intents = discord.Intents.all()
 
-    @discord.ui.button(label='Get Feedback', style=discord.ButtonStyle.primary, emoji='📋')
-    async def get_feedback_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            # Get user feedback
-            user_feedback, user_grade = requestExcelFile(self.feedback_file, interaction, grade=True)
-            
-            if user_feedback.size > 0:
-                feedback_text = user_feedback[0]
-                
-                if len(feedback_text) <= 1024:
-                    embed = Embed(title=f"Feedback for Assignment {self.assignment_number} - Score={user_grade}", color=0xFF914D)
-                    
-                    # Set banner based on server
-                    if "cs617" in self.server_name.lower():
-                        embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_617_horiz.png")
-                    elif "cs666" in self.server_name.lower():
-                        embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_666_horiz.png")
-                    else:
-                        embed.set_image(url="https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/Images/Banner_Default_horiz.png")
-                    
-                    embed.add_field(name=f"Feedback for Assignment #{self.assignment_number}", value=user_feedback[0], inline=False)
-                    
-                    await interaction.user.send(embed=embed)
-                    await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
-                else:
-                    # Long feedback - send as text
-                    banner_path = get_banner_for_server(self.server_name)
-                    banner_url = f"https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/{banner_path}"
-                    
-                    await interaction.user.send(banner_url + "\n\n" + f"Score={user_grade}" + "\n\n" + feedback_text)
-                    await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
-            else:
-                await interaction.response.send_message("❌ No feedback found for this user :(", ephemeral=True)
-                
-        except Exception as e:
-            print(e)
-            await interaction.response.send_message("❌ There was a problem retrieving the feedback.", ephemeral=True)
+activity = discord.Game(name="/helpstudent")
+
+client = commands.Bot(command_prefix='!', activity=activity, intents=intents)
 
 @client.event
 async def on_ready():
@@ -108,7 +69,7 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync slash commands: {e}")
     
-    wizard_ascii_legendary_level_feedback_giver_9000 = """
+    wizard_ascii_legendary_level_feedback_giver_9000 = r"""
 
    ___             _ _                _      __    __ _                  _ 
   / __\__  ___  __| | |__   __ _  ___| | __ / / /\ \ (_)______ _ _ __ __| |
@@ -169,7 +130,7 @@ async def on_guild_join(guild):
             student_embed.add_field(
                 name="📚 Student Commands (Use in #feedback channel only)",
                 value=(
-                    "• `/feedback [assignment_number]` - Click the button to get your feedback\n"
+                    "• `/feedback [assignment_number]` - Get your feedback directly via DM\n"
                     "• `/checkassignments` - See all assignments with feedback available\n"
                     "• `/track` - View your grade progression across all assignments\n"
                     "• `/helpstudent` - Show all available student commands"
@@ -182,7 +143,7 @@ async def on_guild_join(guild):
                 name="⚠️ Important Notes",
                 value=(
                     "• **Only use commands in the #feedback channel**\n"
-                    "• Use `/feedback` and click the **Get Feedback** button for your assignment\n"
+                    "• Use `/feedback` to get your assignment feedback directly in your DMs\n"
                     "• If no assignment number is provided, I'll give you the latest assignment\n"
                     "• Feedback is sent directly to your DMs for privacy\n"
                     "• Staff members have additional commands in the #_staff channel"
@@ -202,7 +163,7 @@ async def on_guild_join(guild):
                 await text_channels[0].send(
                     f"🎓 **Feedback Wizard Bot** has joined **{guild.name}**!\n\n"
                     f"Please create a #general channel for welcome messages, and a #feedback channel for student interactions.\n"
-                    f"Use `/feedback` and click the **Get Feedback** button to get your assignment feedback!\n"
+                    f"Use `/feedback` to get your assignment feedback!\n"
                     f"Use `/helpstudent` in the #feedback channel to see all available commands!"
                 )
 
@@ -297,10 +258,8 @@ async def shutdown(ctx):
 
 @tree.command(name="feedback", description="Get feedback for an assignment")
 @app_commands.describe(assignment_number="The assignment number (optional - will use latest if not provided)")
-
-@app_commands.describe(assignment_number="The assignment number (optional - will use latest if not provided)")
 async def slash_feedback(interaction: discord.Interaction, assignment_number: int = None):
-    """Slash command for getting feedback with interactive button"""
+    """Slash command for getting feedback directly via DM"""
     allowed_channels = ['feedback', "_staff"]
     server_name = interaction.guild.name
 
@@ -324,23 +283,47 @@ async def slash_feedback(interaction: discord.Interaction, assignment_number: in
         await interaction.response.send_message("❌ No feedback available yet.", ephemeral=True)
         return
 
-    # Create embed showing what they're requesting
-    embed = Embed(
-        title="📋 Feedback Request",
-        description=f"You are requesting feedback for **Assignment {assignment_number}**",
-        color=0x00ff00
-    )
-    embed.add_field(
-        name="Instructions",
-        value="Click the button below to receive your feedback via DM",
-        inline=False
-    )
-    embed.set_footer(text="Feedback will be sent privately to your DMs")
-
-    # Create the interactive view
-    view = FeedbackView(assignment_number, feedback_file, server_name)
-
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    try:
+        # Get user feedback directly
+        result = requestExcelFile(feedback_file, interaction, grade=True)
+        
+        # Check if result is an exception (error case)
+        if isinstance(result, Exception):
+            await interaction.response.send_message("❌ There was a problem retrieving the feedback.", ephemeral=True)
+            return
+        
+        # Unpack the result safely
+        user_feedback, user_grade = result
+        
+        if user_feedback.size > 0:
+            feedback_text = user_feedback[0]
+            
+            if len(feedback_text) <= 1024:
+                embed = Embed(title=f"Feedback for Assignment {assignment_number} - Score={user_grade[0] if len(user_grade) > 0 else 'N/A'}", color=0xFF914D)
+                
+                # Set banner based on server using the helper function
+                banner_path = get_banner_for_server(server_name)
+                banner_url = f"https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/{banner_path}"
+                embed.set_image(url=banner_url)
+                
+                embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=feedback_text, inline=False)
+                
+                await interaction.user.send(embed=embed)
+                await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
+            else:
+                # Long feedback - send as text
+                banner_path = get_banner_for_server(server_name)
+                banner_url = f"https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/{banner_path}"
+                
+                grade_text = user_grade[0] if len(user_grade) > 0 else 'N/A'
+                await interaction.user.send(banner_url + "\n\n" + f"Score={grade_text}" + "\n\n" + feedback_text)
+                await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ No feedback found for this user :(", ephemeral=True)
+            
+    except Exception as e:
+        print(f"Error in feedback command: {e}")
+        await interaction.response.send_message("❌ There was a problem retrieving the feedback.", ephemeral=True)
 
 @tree.command(name="checkassignments", description="List all assignments with feedback available")
 async def slash_checkassignments(interaction: discord.Interaction):
@@ -409,7 +392,7 @@ async def slash_helpstudent(interaction: discord.Interaction):
         return
 
     embed = Embed(title="📚 Student Commands", description="Here are the commands available for students:", color=0x00ff00)
-    embed.add_field(name="/feedback [assignment_number]", value="Get the feedback for a specific assignment.", inline=False)
+    embed.add_field(name="/feedback [assignment_number]", value="Get the feedback for a specific assignment directly via DM.", inline=False)
     embed.add_field(name="/checkassignments", value="List all the assignments that have feedback available.", inline=False)
     embed.add_field(name="/track", value="View your grade progression across all assignments.", inline=False)
     embed.add_field(name="/helpstudent", value="Show this help message.", inline=False)
