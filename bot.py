@@ -278,21 +278,33 @@ async def slash_feedback(interaction: discord.Interaction, assignment_number: in
         return
 
     try:
+        print(f"[FEEDBACK] Starting feedback request for user: {interaction.user} (username: {str(interaction.user)})")
+        print(f"[FEEDBACK] Assignment number: {assignment_number}, Server: {server_name}")
+        print(f"[FEEDBACK] Feedback file URL: {feedback_file}")
+        
         # Get user feedback directly
         result = requestExcelFile(feedback_file, interaction, grade=True)
+        print(f"[FEEDBACK] requestExcelFile returned: {type(result)}")
         
         # Check if result is an exception (error case)
         if isinstance(result, Exception):
+            print(f"[FEEDBACK] Exception from requestExcelFile: {result}")
             await interaction.response.send_message("❌ There was a problem retrieving the feedback.", ephemeral=True)
             return
         
+        print(f"[FEEDBACK] Result is not an exception, attempting to unpack...")
+        
         # Unpack the result safely
         user_feedback, user_grade = result
+        print(f"[FEEDBACK] Unpacked successfully. Feedback size: {user_feedback.size if hasattr(user_feedback, 'size') else 'N/A'}")
+        print(f"[FEEDBACK] Grade data: {user_grade if hasattr(user_grade, '__len__') and len(user_grade) > 0 else 'No grade data'}")
         
         if user_feedback.size > 0:
             feedback_text = user_feedback[0]
+            print(f"[FEEDBACK] Feedback text length: {len(feedback_text)}")
             
             if len(feedback_text) <= 1024:
+                print(f"[FEEDBACK] Using embed format for feedback")
                 embed = Embed(title=f"Feedback for Assignment {assignment_number} - Score={user_grade[0] if len(user_grade) > 0 else 'N/A'}", color=0xFF914D)
                 
                 # Set banner based on server using the helper function
@@ -302,21 +314,32 @@ async def slash_feedback(interaction: discord.Interaction, assignment_number: in
                 
                 embed.add_field(name=f"Feedback for Assignment #{assignment_number}", value=feedback_text, inline=False)
                 
+                print(f"[FEEDBACK] Attempting to send embed to user DMs...")
                 await interaction.user.send(embed=embed)
+                print(f"[FEEDBACK] Embed sent successfully, responding to interaction...")
                 await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
+                print(f"[FEEDBACK] Interaction response sent successfully")
             else:
+                print(f"[FEEDBACK] Using text format for long feedback")
                 # Long feedback - send as text
                 banner_path = get_banner_for_server(server_name)
                 banner_url = f"https://raw.githubusercontent.com/gaiborjosue/FeedbackDiscordBot/main/{banner_path}"
                 
                 grade_text = user_grade[0] if len(user_grade) > 0 else 'N/A'
+                print(f"[FEEDBACK] Attempting to send text to user DMs...")
                 await interaction.user.send(banner_url + "\n\n" + f"Score={grade_text}" + "\n\n" + feedback_text)
+                print(f"[FEEDBACK] Text sent successfully, responding to interaction...")
                 await interaction.response.send_message("✅ Feedback sent to your DMs!", ephemeral=True)
+                print(f"[FEEDBACK] Interaction response sent successfully")
         else:
+            print(f"[FEEDBACK] No feedback found for user")
             await interaction.response.send_message("❌ No feedback found for this user :(", ephemeral=True)
             
     except Exception as e:
-        print(f"Error in feedback command: {e}")
+        print(f"[FEEDBACK] ERROR in feedback command: {type(e).__name__}: {e}")
+        import traceback
+        print(f"[FEEDBACK] Full traceback:")
+        traceback.print_exc()
         await interaction.response.send_message("❌ There was a problem retrieving the feedback.", ephemeral=True)
 
 @tree.command(name="checkassignments", description="List all assignments with feedback available")

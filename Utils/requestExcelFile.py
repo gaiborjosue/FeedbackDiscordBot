@@ -7,34 +7,78 @@ import dataframe_image as dfi
 
 def fetchExcelFile(feedback_file: str):
     try:
+        print(f"[FETCH] Starting fetchExcelFile with URL: {feedback_file}")
         response = requests.get(feedback_file)
+        print(f"[FETCH] HTTP response status code: {response.status_code}")
         response.raise_for_status()
+        print(f"[FETCH] Response content length: {len(response.content)} bytes")
+        
         with BytesIO(response.content) as f:
             df = pd.read_excel(f)
+        print(f"[FETCH] Successfully loaded Excel file, shape: {df.shape}")
         return df
     except Exception as e:
+        print(f"[FETCH] ERROR in fetchExcelFile: {type(e).__name__}: {e}")
+        import traceback
+        print(f"[FETCH] Full traceback:")
+        traceback.print_exc()
         return e
 
 def requestExcelFile(feedback_file: str, ctx, username: str = None, grade: bool = False):
     try:
+        print(f"[EXCEL] Starting requestExcelFile with feedback_file: {feedback_file}")
+        print(f"[EXCEL] Username parameter: {username}")
+        print(f"[EXCEL] Grade parameter: {grade}")
+        print(f"[EXCEL] Context author: {ctx.author if hasattr(ctx, 'author') else 'No author attribute'}")
+        
         df = fetchExcelFile(feedback_file)
+        print(f"[EXCEL] fetchExcelFile returned: {type(df)}")
+        
+        if isinstance(df, Exception):
+            print(f"[EXCEL] fetchExcelFile returned an exception: {df}")
+            return df
+
+        print(f"[EXCEL] DataFrame shape: {df.shape}")
+        print(f"[EXCEL] DataFrame columns: {list(df.columns)}")
 
         df.columns = df.columns.str.lower()
+        print(f"[EXCEL] Columns after lowercase: {list(df.columns)}")
 
         if 'discord username' in df.columns:
             df['discord username'] = df['discord username'].str.lower()
+            print(f"[EXCEL] Converted discord username column to lowercase")
+        else:
+            print(f"[EXCEL] WARNING: 'discord username' column not found!")
 
         lookup_username = username.lower() if username else str(ctx.author).lower()
+        print(f"[EXCEL] Looking for username: '{lookup_username}'")
+        
+        # Show available usernames for debugging
+        if 'discord username' in df.columns:
+            available_usernames = df['discord username'].unique()
+            print(f"[EXCEL] Available usernames in file: {available_usernames}")
 
         user_feedback = df.loc[df['discord username'] == lookup_username, 'feedback'].values
+        print(f"[EXCEL] Found feedback entries: {len(user_feedback)}")
 
         if grade:
-            user_grade = df.loc[df['discord username'] == lookup_username, 'grade'].values
+            if 'grade' in df.columns:
+                user_grade = df.loc[df['discord username'] == lookup_username, 'grade'].values
+                print(f"[EXCEL] Found grade entries: {len(user_grade)}")
+            else:
+                print(f"[EXCEL] WARNING: 'grade' column not found, using empty array")
+                user_grade = []
+            print(f"[EXCEL] Returning tuple: (feedback_array_size={len(user_feedback)}, grade_array_size={len(user_grade)})")
             return user_feedback, user_grade
 
+        print(f"[EXCEL] Returning feedback only: array_size={len(user_feedback)}")
         return user_feedback
 
     except Exception as e:
+        print(f"[EXCEL] ERROR in requestExcelFile: {type(e).__name__}: {e}")
+        import traceback
+        print(f"[EXCEL] Full traceback:")
+        traceback.print_exc()
         return e
 
 def getGraphData(feedback_file: str):
