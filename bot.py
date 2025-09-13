@@ -42,6 +42,7 @@ def get_banner_for_server(server_name):
 
 
 # Define the intents
+# Define the intents
 intents = discord.Intents.all()
 
 activity = discord.Game(name="/helpstudent")
@@ -50,13 +51,6 @@ client = commands.Bot(command_prefix='!', activity=activity, intents=intents)
 
 # Use the existing command tree
 tree = client.tree
-
-# Define the intents
-intents = discord.Intents.all()
-
-activity = discord.Game(name="/helpstudent")
-
-client = commands.Bot(command_prefix='!', activity=activity, intents=intents)
 
 @client.event
 async def on_ready():
